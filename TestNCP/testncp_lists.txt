@@ -1,0 +1,6 @@
+TestNCP - lists
+------------------------------
+
+enable/disable command etc.
+
+settings (ingame for testers) to alter if to show all details.
