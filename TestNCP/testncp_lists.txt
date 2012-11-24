@@ -3,4 +3,9 @@ TestNCP - lists
 
 enable/disable command etc.
 
-settings (ingame for testers) to alter if to show all details.
+settings 
+
+
+settings for testers: (ingame for testers) 
+! alter if to show all details.
+! select if to see all / own / certain players infos 
