@@ -4,10 +4,12 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import me.asofold.bpl.testncp.utils.DoubleDef;
@@ -23,6 +25,10 @@ import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import fr.neatmonster.nocheatplus.actions.ParameterName;
@@ -35,9 +41,17 @@ import fr.neatmonster.nocheatplus.hooks.IStats;
 import fr.neatmonster.nocheatplus.hooks.NCPHook;
 import fr.neatmonster.nocheatplus.hooks.NCPHookManager;
 
-public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst{
+public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, Listener{
     
+	/**
+	 * Lower case names.
+	 */
     protected final Set<String> testers = new HashSet<String>();
+    
+    /**
+     * Tester -> Set of names to receive messages for.
+     */
+    protected final Map<String, Set<String>> inputs = new HashMap<String, Set<String>>();
     
     protected boolean toConsole = true;
     
@@ -75,6 +89,27 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst{
     		if (!expectPlayer(sender)) return true;
     		fakeMove((Player) sender, args, 1, sender);
     		return true; 
+        }
+        else if (cmd.equals("input")){
+        	if (!expectPlayer(sender)) return true;
+        	String lcName = sender.getName().toLowerCase();
+        	if (args.length == 1 || args.length == 2 && args[1].equals("*")){
+        		inputs.remove(lcName);
+        		sender.sendMessage("[TestNCP] Cleared inputs list (receive all).");
+        	}
+        	else{
+        		Set<String> names = inputs.get(lcName);
+        		if (names == null){
+        			names = new HashSet<String>();
+        			inputs.put(lcName, names);
+        		}
+        		for (int i = 1; i < args.length; i++){
+        			names.add(args[i].trim().toLowerCase());
+        		}
+        		sender.sendMessage("[TestNCP] Added names to inputs.");
+        		sendInputs((Player) sender);
+        	}
+        	return true;
         }
         return false;
     }
@@ -179,10 +214,30 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst{
     public void onEnable() {
         reloadSettings();
         NCPHookManager.addHook(CheckType.ALL, this);
+        getServer().getPluginManager().registerEvents(this, this);
         System.out.println(getDescription().getFullName() + " is enabled.");
     }
     
-    public void reloadSettings() {
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent event){
+    	final Player player = event.getPlayer();
+    	sendInputs(player);
+    }
+    
+    public void sendInputs(Player player) {
+    	Set<String> names = inputs.get(player.getName().toLowerCase());
+    	if (names != null){
+    		StringBuilder b  = new StringBuilder(256);
+    		b.append("[TestNCP] Your inputs:");
+    		for (String n : names){
+    			b.append(" ");
+    			b.append(n);
+    		}
+    		player.sendMessage(b.toString());
+    	}
+	}
+
+	public void reloadSettings() {
         this.testers.clear();
         MemoryConfiguration defaults = new MemoryConfiguration();
         defaults.set("testers", new LinkedList<String>());
@@ -229,7 +284,8 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst{
     }
     
     public void log(final CheckType checkType, final Player player, final IViolationInfo info) {
-        String msg = ChatColor.YELLOW + "[TestNCP] " + ChatColor.WHITE + player.getName() + " " + ChatColor.AQUA + checkType.name() + ChatColor.WHITE + " vl " + format.format(info.getTotalVl()) + " (+" + format.format(info.getAddedVl()) + ")";
+    	final String name = player.getName();
+        String msg = ChatColor.YELLOW + "[TestNCP] " + ChatColor.WHITE + name + " " + ChatColor.AQUA + checkType.name() + ChatColor.WHITE + " vl " + format.format(info.getTotalVl()) + " (+" + format.format(info.getAddedVl()) + ")";
         if (details && info.needsParameters()){
             final StringBuilder builder = new StringBuilder(200);
             builder.append(msg);
@@ -246,8 +302,13 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst{
             msg =  builder.toString();
         }
         if (toConsole) Bukkit.getLogger().info(ChatColor.stripColor(msg));
+        final String lcName = name.toLowerCase();
         for (final Player ref : Bukkit.getOnlinePlayers()){
-            if (testAll || testers.contains(ref.getName().toLowerCase())) ref.sendMessage(msg);
+        	final String lcRef = ref.getName().toLowerCase();
+            if (testAll || testers.contains(lcRef)){
+            	Set<String> names = inputs.get(lcRef);
+            	if (names == null || names.contains(lcName)) ref.sendMessage(msg);
+            }
         }
     }
     
