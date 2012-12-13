@@ -13,17 +13,13 @@ import java.util.Map;
 import java.util.Set;
 
 import me.asofold.bpl.testncp.utils.DoubleDef;
-import net.minecraft.server.EntityPlayer;
-import net.minecraft.server.Packet10Flying;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.MemoryConfiguration;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -87,7 +83,8 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         }
         else if (cmd.equals("move") && sender.hasPermission("testncp.admin.fake.move") && args.length > 1){
     		if (!expectPlayer(sender)) return true;
-    		fakeMove((Player) sender, args, 1, sender);
+    		sender.sendMessage("[TestNCP] Feature not available.");
+//    		fakeMove((Player) sender, args, 1, sender);
     		return true; 
         }
         else if (cmd.equals("input")){
@@ -114,59 +111,59 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         return false;
     }
     
-    /**
-     * Parses DoubleDef values.
-     * @param player
-     * @param args
-     * @param startIndex
-     * @param notify
-     * @return
-     */
-    public boolean fakeMove(Player player, String[] args, int startIndex, CommandSender notify){
-    	Collection<DoubleDef> doubles = parseDoubles(args, 1, notify);
-		if (doubles == null) return false;
-		return fakeMove(player, doubles, notify);
-    }
+//    /**
+//     * Parses DoubleDef values.
+//     * @param player
+//     * @param args
+//     * @param startIndex
+//     * @param notify
+//     * @return
+//     */
+//    public boolean fakeMove(Player player, String[] args, int startIndex, CommandSender notify){
+//    	Collection<DoubleDef> doubles = parseDoubles(args, 1, notify);
+//		if (doubles == null) return false;
+//		return fakeMove(player, doubles, notify);
+//    }
     
-    /**
-     * 
-     * @param player
-     * @param doubles
-     * @param notify Gets notifications for errors.
-     * @return
-     */
-    public static boolean fakeMove(Player player, Collection<DoubleDef> doubles, CommandSender notify)
-	{
-    	Location loc = player.getLocation();
-    	double x = loc.getX();
-    	double y = loc.getY();
-    	double z = loc.getZ();
-    	boolean ground = true; // TODO: maybe check if player is on ground ?
-    	float pitch = loc.getPitch();
-		float yaw = loc.getYaw();
-		for (DoubleDef arg : doubles){
-			String key = arg.key;
-			if (key.equals("x")) x = arg.apply(loc.getX());
-			else if (key.equals("y")) y = arg.apply(loc.getY());
-			else if (key.equals("z")) z = arg.apply(loc.getZ());
-			else if (key.equals("pitch") || key.equals("p")) pitch = (float) arg.apply(loc.getPitch());
-			else if (key.equals("yaw") || key.equals("ya")) yaw = (float) arg.apply(loc.getYaw());
-			else if (key.equals("ground") || key.equals("g")) ground = arg.value != 0;
-			else if (key.equals("stance") || key.equals("s")); // Treat after other keys.
-			else{
-				if (notify != null) notify.sendMessage("Bad key: " + arg.key);
-				return false;
-			}
-		}
-		// Stance is extra (after y is set), to allow a little variation of order.
-		double stance = y + 1.65D; // TODO: can it be read ?
-		for (DoubleDef arg : doubles){
-			String key = arg.key;
-			if (key.equals("stance") || key.equals("s")) stance = (float) arg.apply(y);
-		}
-		fakeMove(player, x, y, z, pitch, yaw, stance , ground);
-		return true;
-	}
+//    /**
+//     * 
+//     * @param player
+//     * @param doubles
+//     * @param notify Gets notifications for errors.
+//     * @return
+//     */
+//    public static boolean fakeMove(Player player, Collection<DoubleDef> doubles, CommandSender notify)
+//	{
+//    	Location loc = player.getLocation();
+//    	double x = loc.getX();
+//    	double y = loc.getY();
+//    	double z = loc.getZ();
+//    	boolean ground = true; // TODO: maybe check if player is on ground ?
+//    	float pitch = loc.getPitch();
+//		float yaw = loc.getYaw();
+//		for (DoubleDef arg : doubles){
+//			String key = arg.key;
+//			if (key.equals("x")) x = arg.apply(loc.getX());
+//			else if (key.equals("y")) y = arg.apply(loc.getY());
+//			else if (key.equals("z")) z = arg.apply(loc.getZ());
+//			else if (key.equals("pitch") || key.equals("p")) pitch = (float) arg.apply(loc.getPitch());
+//			else if (key.equals("yaw") || key.equals("ya")) yaw = (float) arg.apply(loc.getYaw());
+//			else if (key.equals("ground") || key.equals("g")) ground = arg.value != 0;
+//			else if (key.equals("stance") || key.equals("s")); // Treat after other keys.
+//			else{
+//				if (notify != null) notify.sendMessage("Bad key: " + arg.key);
+//				return false;
+//			}
+//		}
+//		// Stance is extra (after y is set), to allow a little variation of order.
+//		double stance = y + 1.65D; // TODO: can it be read ?
+//		for (DoubleDef arg : doubles){
+//			String key = arg.key;
+//			if (key.equals("stance") || key.equals("s")) stance = (float) arg.apply(y);
+//		}
+//		fakeMove(player, x, y, z, pitch, yaw, stance , ground);
+//		return true;
+//	}
 
 	public static Collection<DoubleDef> parseDoubles(String[] args, int startIndex, CommandSender notify){
     	List<DoubleDef> result = new ArrayList<DoubleDef>(args.length - startIndex);
@@ -182,21 +179,21 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
     	return result;
     }
     
-    public static void fakeMove(Player player, double x, double y, double z, float pitch, float yaw, double stance, boolean ground) {
-		EntityPlayer mcPlayer = ((CraftPlayer) player).getHandle();
-		Packet10Flying packet = new Packet10Flying();
-		packet.x = x;
-		packet.y = y;
-		packet.z = z;
-		packet.hasPos = true;
-		packet.stance = stance;
-		packet.hasLook = true;
-		packet.yaw = yaw;
-		packet.pitch = pitch;
-		packet.g = ground; // Assumption !
-		mcPlayer.netServerHandler.a(packet);
-		
-	}
+//    public static void fakeMove(Player player, double x, double y, double z, float pitch, float yaw, double stance, boolean ground) {
+//		EntityPlayer mcPlayer = ((CraftPlayer) player).getHandle();
+//		Packet10Flying packet = new Packet10Flying();
+//		packet.x = x;
+//		packet.y = y;
+//		packet.z = z;
+//		packet.hasPos = true;
+//		packet.stance = stance;
+//		packet.hasLook = true;
+//		packet.yaw = yaw;
+//		packet.pitch = pitch;
+//		packet.g = ground; // Assumption !
+//		mcPlayer.netServerHandler.a(packet);
+//		
+//	}
 
 	public static boolean expectPlayer(CommandSender sender){
     	if (sender instanceof Player) return true;
