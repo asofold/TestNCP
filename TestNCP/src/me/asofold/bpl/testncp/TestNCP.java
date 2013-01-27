@@ -36,6 +36,7 @@ import fr.neatmonster.nocheatplus.hooks.IFirst;
 import fr.neatmonster.nocheatplus.hooks.IStats;
 import fr.neatmonster.nocheatplus.hooks.NCPHook;
 import fr.neatmonster.nocheatplus.hooks.NCPHookManager;
+import fr.neatmonster.nocheatplus.utilities.TickTask;
 
 public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, Listener{
     
@@ -58,6 +59,8 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
     protected final Set<ParameterName> detailsUsed = new LinkedHashSet<ParameterName>();
     
     protected final DecimalFormat format = new DecimalFormat("#.###");
+    
+    protected final long[] lagTicks = new long[]{1, 5, 10, 20, 1200};
     
     public TestNCP(){
         for (final ParameterName param : ParameterName.values()){
@@ -283,19 +286,38 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
     public void log(final CheckType checkType, final Player player, final IViolationInfo info) {
     	final String name = player.getName();
         String msg = ChatColor.YELLOW + "[TestNCP] " + ChatColor.WHITE + name + " " + ChatColor.AQUA + checkType.name() + ChatColor.WHITE + " vl " + format.format(info.getTotalVl()) + " (+" + format.format(info.getAddedVl()) + ")";
-        if (details && info.needsParameters()){
+        if (details){
             final StringBuilder builder = new StringBuilder(200);
             builder.append(msg);
-            builder.append(ChatColor.GRAY + " Details:");
-            final ViolationData data = (ViolationData) info;
-            // TODO: Add a way to get the parameter map to NCP ?
-            for (final ParameterName param : detailsUsed){
-                final String paramName = param.name();
-                final String val = data.getParameter(param);
-                if (val == null || val.equals("<?" + paramName + ">")) continue;
-                else builder.append(" " + param + "=" + val);
+            if (info.needsParameters()){
+            	builder.append(ChatColor.GRAY + " Details:");
+                final ViolationData data = (ViolationData) info;
+                // TODO: Add a way to get the parameter map to NCP ?
+                for (final ParameterName param : detailsUsed){
+                    final String paramName = param.name();
+                    final String val = data.getParameter(param);
+                    if (val == null || val.equals("<?" + paramName + ">")) continue;
+                    else builder.append(" " + param + "=" + val);
+                }
+                builder.append(" cancel=" + info.hasCancel());
             }
-            builder.append(" cancel=" + info.hasCancel());
+            final String[] lagSpecs = new String[lagTicks.length];
+            boolean hasLag = false;
+            for (int i = 0; i < lagTicks.length; i++){
+            	final long ticks = lagTicks[i];
+            	final float lag = TickTask.getLag(50L * ticks);
+            	if (lag > 1.0){
+            		hasLag = true;
+            		lagSpecs[i] = " " + i + "@" + format.format(lag);
+            	}
+            	else lagSpecs[i] = null;
+            }
+            if (hasLag){
+            	builder.append("Ticks[Lag]:");
+            	for (int i = 0; i < lagTicks.length; i++){
+            		if (lagSpecs[i] != null) builder.append(lagSpecs[i]);
+            	}
+            }
             msg =  builder.toString();
         }
         if (toConsole) Bukkit.getLogger().info(ChatColor.stripColor(msg));
