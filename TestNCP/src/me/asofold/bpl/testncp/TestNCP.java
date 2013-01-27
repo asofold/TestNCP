@@ -285,10 +285,18 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
     
     public void log(final CheckType checkType, final Player player, final IViolationInfo info) {
     	final String name = player.getName();
-        String msg = ChatColor.YELLOW + "[TestNCP] " + ChatColor.WHITE + name + " " + ChatColor.AQUA + checkType.name() + ChatColor.WHITE + " vl " + format.format(info.getTotalVl()) + " (+" + format.format(info.getAddedVl()) + ")";
+    	final String lcName = name.toLowerCase();
+    	// Build the message.
+    	final StringBuilder builder = new StringBuilder(250);
+    	// Name
+        builder.append(ChatColor.YELLOW + "[TestNCP] " + ChatColor.WHITE + name + " ");
+        // Check
+        builder.append(ChatColor.AQUA + checkType.name());
+        // VL
+        builder.append(ChatColor.WHITE + " vl " + format.format(info.getTotalVl()) + " (+" + format.format(info.getAddedVl()) + ")");
+        // Details
         if (details){
-            final StringBuilder builder = new StringBuilder(200);
-            builder.append(msg);
+        	// Parameters
             if (info.needsParameters()){
             	builder.append(ChatColor.GRAY + " Details:");
                 final ViolationData data = (ViolationData) info;
@@ -301,6 +309,7 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
                 }
                 builder.append(" cancel=" + info.hasCancel());
             }
+            // Lag
             final String[] lagSpecs = new String[lagTicks.length];
             boolean hasLag = false;
             for (int i = 0; i < lagTicks.length; i++){
@@ -318,14 +327,14 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
             		if (lagSpecs[i] != null) builder.append(lagSpecs[i]);
             	}
             }
-            msg =  builder.toString();
         }
+        final String msg = builder.toString();
+        // Log the message
         if (toConsole) Bukkit.getLogger().info(ChatColor.stripColor(msg));
-        final String lcName = name.toLowerCase();
         for (final Player ref : Bukkit.getOnlinePlayers()){
         	final String lcRef = ref.getName().toLowerCase();
             if (testAll || testers.contains(lcRef)){
-            	Set<String> names = inputs.get(lcRef);
+            	final Set<String> names = inputs.get(lcRef);
             	if (names == null || names.contains(lcName)) ref.sendMessage(msg);
             }
         }

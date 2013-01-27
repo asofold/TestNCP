@@ -1,6 +1,6 @@
 name: TestNCP
 main: me.asofold.bpl.testncp.TestNCP
-version: 1.2.0
+version: 1.2.1
 depend:
 - NoCheatPlus
 commands:
