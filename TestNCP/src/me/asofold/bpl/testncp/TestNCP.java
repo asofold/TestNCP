@@ -317,12 +317,12 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
             	final float lag = TickTask.getLag(50L * ticks);
             	if (lag > 1.0){
             		hasLag = true;
-            		lagSpecs[i] = " " + i + "@" + format.format(lag);
+            		lagSpecs[i] = " " + lagTicks[i] + "@" + format.format(lag);
             	}
             	else lagSpecs[i] = null;
             }
             if (hasLag){
-            	builder.append("Ticks[Lag]:");
+            	builder.append(" Ticks[Lag]:");
             	for (int i = 0; i < lagTicks.length; i++){
             		if (lagSpecs[i] != null) builder.append(lagSpecs[i]);
             	}
