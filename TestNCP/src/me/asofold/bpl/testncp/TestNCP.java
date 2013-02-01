@@ -25,6 +25,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import fr.neatmonster.nocheatplus.actions.ParameterName;
@@ -43,7 +45,12 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
 	/**
 	 * Lower case names.
 	 */
-    protected final Set<String> testers = new HashSet<String>();
+    protected final Set<String> testers = new LinkedHashSet<String>();
+    
+    /**
+     * Online testers.
+     */
+    protected final Set<Player> activeReceivers = new LinkedHashSet<Player>();
     
     /**
      * Tester -> Set of names to receive messages for.
@@ -221,11 +228,33 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
     @EventHandler(priority=EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event){
     	final Player player = event.getPlayer();
-    	sendInputs(player);
+    	activeReceivers.remove(player);
+    	final String lcName = player.getName().trim().toLowerCase();
+    	if (testAll || testers.contains(lcName)){
+        	sendInputs(player);
+        	activeReceivers.add(player);
+    	}
+    	else{
+    		inputs.remove(lcName);
+    	}
     }
     
-    public void sendInputs(Player player) {
-    	Set<String> names = inputs.get(player.getName().toLowerCase());
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event){
+    	onLeave(event.getPlayer());
+    }
+    
+    @EventHandler(priority=EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerKick(PlayerKickEvent event){
+    	onLeave(event.getPlayer());
+    }
+    
+    private void onLeave(Player player) {
+		activeReceivers.remove(player);
+	}
+
+	public void sendInputs(Player player) {
+    	Set<String> names = inputs.get(player.getName().trim().toLowerCase());
     	if (names != null){
     		StringBuilder b  = new StringBuilder(256);
     		b.append("[TestNCP] Your inputs:");
@@ -255,9 +284,22 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
             this.testers.add(n.trim().toLowerCase());
         }
         testAll = this.testers.contains("*");
+        updateActiveTesters();
     }
 
-    @Override
+	/**
+	 * Re-evaluate all online players according to settings.
+	 */
+    public void updateActiveTesters() {
+		activeReceivers.clear();
+		for (final Player player : getServer().getOnlinePlayers()){
+			if (testAll || testers.contains(player.getName().trim().toLowerCase())){
+				activeReceivers.add(player);
+			}
+		}
+	}
+
+	@Override
     public String getHookName() {
         return "TestNCPHook";
     }
@@ -269,8 +311,9 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
 
     @Override
     public boolean onCheckFailure(final CheckType checkType, final Player player, final IViolationInfo info) {
+    	if (!toConsole && activeReceivers.isEmpty()) return false;
         final String name = player.getName().toLowerCase();
-        if (!testAll && !testers.contains(name)) return false;
+        if (!testAll && !testers.contains(name)) return false; // TODO
         if (APIUtils.needsSynchronization(checkType)){
             Bukkit.getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
                 @Override
@@ -331,12 +374,10 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         final String msg = builder.toString();
         // Log the message
         if (toConsole) Bukkit.getLogger().info(ChatColor.stripColor(msg));
-        for (final Player ref : Bukkit.getOnlinePlayers()){
+        for (final Player ref : activeReceivers){
         	final String lcRef = ref.getName().toLowerCase();
-            if (testAll || testers.contains(lcRef)){
-            	final Set<String> names = inputs.get(lcRef);
-            	if (names == null || names.contains(lcName)) ref.sendMessage(msg);
-            }
+        	final Set<String> names = inputs.get(lcRef);
+        	if (names == null || names.contains(lcName)) ref.sendMessage(msg);
         }
     }
     

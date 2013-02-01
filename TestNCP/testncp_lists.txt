@@ -1,11 +1,12 @@
 TestNCP - lists
 ------------------------------
 
-enable/disable command etc.
-
-settings 
 
 
-settings for testers: (ingame for testers) 
 ! alter if to show all details.
-! select if to see all / own / certain players infos 
+
+commands to alter testers etc. + enable/disable command etc.
+
+make possible to just follow certain players (who may not receive input). [could be /ncp input ... with extra permission]
+
+consider: maintain sets of players for who receives whose violation infos.
