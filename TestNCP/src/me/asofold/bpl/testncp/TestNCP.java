@@ -118,6 +118,22 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         	}
         	return true;
         }
+        else if (cmd.matches("velocity|vel")){
+        	if (!expectPlayer(sender) || args.length != 2) return false;
+        	if (!checkPerm(sender, "testncp.cmd.velocity")) return true;
+        	double x = Double.NaN;
+        	try{
+        		x = Double.parseDouble(args[1]);
+        	}
+        	catch(NumberFormatException e){}
+        	if (Double.isNaN(x)){
+        		sender.sendMessage(ChatColor.DARK_RED + "Bad number: " + args[1]);
+        		return false;
+        	}
+        	Player player = (Player) sender;
+        	player.setVelocity(player.getLocation().getDirection().normalize().multiply(x));
+        	return true;
+        }
         return false;
     }
     
@@ -204,6 +220,11 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
 //		mcPlayer.netServerHandler.a(packet);
 //		
 //	}
+	public static boolean checkPerm(CommandSender sender, String perm){
+		if (sender.hasPermission(perm)) return true;
+		sender.sendMessage(ChatColor.DARK_RED + "You don't have permission (" + perm + ").");
+		return false;
+	}
 
 	public static boolean expectPlayer(CommandSender sender){
     	if (sender instanceof Player) return true;
