@@ -86,12 +86,14 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
             String label, String[] args) {
         String cmd = "";
         if (args.length > 0) cmd = args[0].trim().toLowerCase();
-        if (cmd.equals("reload") && sender.hasPermission("testncp.admin.reload")){
+        if (cmd.equals("reload")){
+        	if (!checkPerm(sender, "testncp.admin.reload")) return true;
             reloadSettings();
             sender.sendMessage("[TestNCP] Settings reloaded.");
             return true;
         }
-        else if (cmd.equals("move") && sender.hasPermission("testncp.admin.fake.move") && args.length > 1){
+        else if (cmd.equals("move") && args.length > 1){
+        	if (!checkPerm(sender, "testncp.admin.fake.move")) return true; 
     		if (!expectPlayer(sender)) return true;
     		sender.sendMessage("[TestNCP] Feature not available.");
 //    		fakeMove((Player) sender, args, 1, sender);
