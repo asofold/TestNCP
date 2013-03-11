@@ -41,6 +41,47 @@ import fr.neatmonster.nocheatplus.hooks.NCPHookManager;
 import fr.neatmonster.nocheatplus.utilities.TickTask;
 
 public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, Listener{
+	
+	public static final class NoViolationHook implements NCPHook {
+		protected final Set<String> players = new HashSet<String>();
+		@Override
+		public boolean onCheckFailure(final CheckType type, final Player player, final IViolationInfo info) {
+			return players.contains(player.getName());
+		}
+		
+		@Override
+		public String getHookVersion() {
+			return "1.0";
+		}
+		
+		@Override
+		public String getHookName() {
+			return "NoViolation(TestNCP)";
+		}
+		public void addPlayer(String playerName){
+			players.add(playerName);
+		}
+		public void removePlayer(String playerName){
+			players.remove(playerName);
+		}
+		public boolean hasPlayers(){
+			return !players.isEmpty();
+		}
+		/**
+		 * 
+		 * @param playerName
+		 * @return True, if player is newly added, false if removed.
+		 */
+		public boolean togglePlayer(final String playerName){
+			if (players.remove(playerName)){
+				return false;
+			}
+			else{
+				players.add(playerName);
+				return true;
+			}
+		}
+	};
     
 	/**
 	 * Lower case names.
@@ -68,6 +109,8 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
     protected final DecimalFormat format = new DecimalFormat("#.###");
     
     protected final long[] lagTicks = new long[]{1, 5, 10, 20, 1200};
+    
+    protected final NoViolationHook noViolationHook = new  NoViolationHook();
     
     public TestNCP(){
         for (final ParameterName param : ParameterName.values()){
@@ -134,6 +177,25 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         	}
         	Player player = (Player) sender;
         	player.setVelocity(player.getLocation().getDirection().normalize().multiply(x));
+        	return true;
+        }
+        else if (cmd.matches("noviolations|noviolation|noviol")){
+        	if (!expectPlayer(sender) || args.length != 1) return false;
+        	if (!checkPerm(sender, "testncp.cmd.noviolations")) return true;
+        	final boolean has = noViolationHook.hasPlayers();
+        	if (noViolationHook.togglePlayer(sender.getName())){
+        		// Added
+        		if (!has){
+        			NCPHookManager.addHook(CheckType.ALL, noViolationHook);
+        		}
+        		sender.sendMessage(ChatColor.GREEN + "You generate no further violations (actions actually).");
+        	}
+        	else{
+        		if (!noViolationHook.hasPlayers()){
+        			NCPHookManager.removeHook(noViolationHook);
+        		}
+        		sender.sendMessage(ChatColor.RED + "You can now generate violations (actions actually) again, might use: /ncp remove " + sender.getName());
+        	}
         	return true;
         }
         return false;
@@ -274,6 +336,10 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
     
     private void onLeave(Player player) {
 		activeReceivers.remove(player);
+		noViolationHook.removePlayer(player.getName()); // Safety thing.
+		if (!noViolationHook.hasPlayers()){
+			NCPHookManager.removeHook(noViolationHook);
+		}
 	}
 
 	public void sendInputs(Player player) {
