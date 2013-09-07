@@ -429,7 +429,7 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         // Details
         if (details){
         	// Parameters
-            if (info.needsParameters()){
+            if (info.hasParameters()){
             	builder.append(ChatColor.GRAY + " Details:");
                 final ViolationData data = (ViolationData) info;
                 // TODO: Add a way to get the parameter map to NCP ?
