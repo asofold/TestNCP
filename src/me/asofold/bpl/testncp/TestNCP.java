@@ -115,8 +115,17 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
 
     public TestNCP(){
         for (final ParameterName param : ParameterName.values()){
-            if (param == ParameterName.IP || param == ParameterName.PLAYER || param == ParameterName.VIOLATIONS || param == ParameterName.CHECK) continue;
-            else detailsUsed.add(param);
+            detailsUsed.add(param);
+        }
+        // Retrace information that's not meant to be public or is given otherwise.
+        for (final ParameterName param : new ParameterName[] {
+                ParameterName.IP,
+                ParameterName.PLAYER,
+                ParameterName.PLAYER_NAME,
+                ParameterName.VIOLATIONS,
+                ParameterName.CHECK,
+        }) {
+            detailsUsed.remove(param);
         }
         DecimalFormatSymbols sym = format.getDecimalFormatSymbols();
         sym.setDecimalSeparator('.');
@@ -323,9 +332,13 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
 
     @Override
     public boolean onCheckFailure(final CheckType checkType, final Player player, final IViolationInfo info) {
-        if (!toConsole && activeReceivers.isEmpty()) return false;
+        if (!toConsole && activeReceivers.isEmpty()) {
+            return false;
+        }
         final String name = player.getName().toLowerCase();
-        if (!testAll && !testers.contains(name)) return false; // TODO
+        if (!testAll && !testers.contains(name)) {
+            return false;
+        }
         if (APIUtils.needsSynchronization(checkType)){
             Bukkit.getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
                 @Override
@@ -334,7 +347,9 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
                 }
             });
         }
-        else log(checkType, player, info);
+        else {
+            log(checkType, player, info);
+        }
         return false;
     }
 
@@ -352,18 +367,19 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         // Details
         if (details){
             // Parameters
-            if (info.hasParameters()){
-                builder.append(ChatColor.GRAY + " Details:");
-                final ViolationData data = (ViolationData) info;
-                // TODO: Add a way to get the parameter map to NCP ?
-                for (final ParameterName param : detailsUsed){
-                    final String paramName = param.name();
-                    final String val = data.getParameter(param);
-                    if (val == null || val.equals("<?" + paramName + ">")) continue;
-                    else builder.append(" " + param + "=" + val);
+            builder.append(ChatColor.GRAY + " Details:");
+            final ViolationData data = (ViolationData) info;
+            for (final ParameterName param : detailsUsed){
+                final String val = data.getParameter(param);
+                final String text = param.getText();
+                if (val == null || val.equals("[" + text + "]") || param == ParameterName.PLAYER_DISPLAY_NAME && name.equals(val)) {
+                    continue;
                 }
-                builder.append(" cancel=" + info.hasCancel());
+                else {
+                    builder.append(" " + text + "=" + val);
+                }
             }
+            builder.append(" cancel=" + info.hasCancel());
             // Lag
             final String[] lagSpecs = new String[lagTicks.length];
             boolean hasLag = false;
@@ -374,12 +390,16 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
                     hasLag = true;
                     lagSpecs[i] = " " + lagTicks[i] + "@" + format.format(lag);
                 }
-                else lagSpecs[i] = null;
+                else {
+                    lagSpecs[i] = null;
+                }
             }
             if (hasLag){
                 builder.append(" Ticks[Lag]:");
                 for (int i = 0; i < lagTicks.length; i++){
-                    if (lagSpecs[i] != null) builder.append(lagSpecs[i]);
+                    if (lagSpecs[i] != null) {
+                        builder.append(lagSpecs[i]);
+                    }
                 }
             }
         }
@@ -395,10 +415,13 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
                 logManager.info(Streams.SERVER_LOGGER, noColorMsg);
             }
         }
+        // TODO: Consider allowing asynchronously run checks up to here.
         for (final Player ref : activeReceivers){
             final String lcRef = ref.getName().toLowerCase();
             final Set<String> names = inputs.get(lcRef);
-            if (names == null || names.contains(lcName)) ref.sendMessage(msg);
+            if (names == null || names.contains(lcName)) {
+                ref.sendMessage(msg);
+            }
         }
     }
 
