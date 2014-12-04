@@ -25,6 +25,7 @@ import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import fr.neatmonster.nocheatplus.NCPAPIProvider;
 import fr.neatmonster.nocheatplus.actions.ParameterName;
 import fr.neatmonster.nocheatplus.checks.CheckType;
 import fr.neatmonster.nocheatplus.checks.ViolationData;
@@ -34,6 +35,8 @@ import fr.neatmonster.nocheatplus.hooks.IFirst;
 import fr.neatmonster.nocheatplus.hooks.IStats;
 import fr.neatmonster.nocheatplus.hooks.NCPHook;
 import fr.neatmonster.nocheatplus.hooks.NCPHookManager;
+import fr.neatmonster.nocheatplus.logging.LogManager;
+import fr.neatmonster.nocheatplus.logging.Streams;
 import fr.neatmonster.nocheatplus.utilities.TickTask;
 
 public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, Listener{
@@ -94,7 +97,9 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
      */
     protected final Map<String, Set<String>> inputs = new HashMap<String, Set<String>>();
 
-    protected boolean toConsole = true;
+    protected boolean toConsole = false;
+    
+    protected boolean toTraceFile = true;
 
     protected boolean details = true;
 
@@ -275,7 +280,8 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         this.testers.clear();
         MemoryConfiguration defaults = new MemoryConfiguration();
         defaults.set("testers", new LinkedList<String>());
-        defaults.set("logging.console", true);
+        defaults.set("logging.console", false);
+        defaults.set("logging.tracefile", true);
         defaults.set("logging.details", true);
         reloadConfig();
         Configuration config = getConfig();
@@ -283,6 +289,7 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         config.options().copyDefaults(true);
         saveConfig();
         toConsole = config.getBoolean("logging.console");
+        toTraceFile = config.getBoolean("logging.tracefile");
         details = config.getBoolean("logging.details");
         List<String> testers = config.getStringList("testers");
         for (String n : testers){
@@ -378,7 +385,16 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
         }
         final String msg = builder.toString();
         // Log the message
-        if (toConsole) Bukkit.getLogger().info(ChatColor.stripColor(msg));
+        if (toTraceFile || toConsole) {
+            final LogManager logManager = NCPAPIProvider.getNoCheatPlusAPI().getLogManager();
+            final String noColorMsg = ChatColor.stripColor(msg);
+            if (toTraceFile) {
+                logManager.debug(Streams.TRACE_FILE, noColorMsg);
+            }
+            if (toConsole) {
+                logManager.info(Streams.PLUGIN_LOGGER, noColorMsg);
+            }
+        }
         for (final Player ref : activeReceivers){
             final String lcRef = ref.getName().toLowerCase();
             final Set<String> names = inputs.get(lcRef);
