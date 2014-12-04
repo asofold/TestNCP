@@ -392,7 +392,7 @@ public class TestNCP extends JavaPlugin implements NCPHook, IStats, IFirst, List
                 logManager.debug(Streams.TRACE_FILE, noColorMsg);
             }
             if (toConsole) {
-                logManager.info(Streams.PLUGIN_LOGGER, noColorMsg);
+                logManager.info(Streams.SERVER_LOGGER, noColorMsg);
             }
         }
         for (final Player ref : activeReceivers){
